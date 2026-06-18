@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join on Ansora</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 40px 32px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(124, 58, 237, 0.15);
+    }
+    .logo { font-size: 28px; font-weight: 800; color: #7c3aed; letter-spacing: 1px; margin-bottom: 8px; }
+    .tagline { font-size: 13px; color: #9ca3af; margin-bottom: 32px; }
+    .avatar { font-size: 52px; margin-bottom: 16px; }
+    .invite-text { font-size: 18px; font-weight: 600; color: #1a1a2e; margin-bottom: 6px; }
+    .invite-sub { font-size: 14px; color: #6b7280; margin-bottom: 28px; line-height: 1.5; }
+    .code-box {
+      background: #f5f3ff;
+      border: 2px solid #ede9fe;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 28px;
+    }
+    .code-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .code-value { font-size: 36px; font-weight: 800; color: #7c3aed; letter-spacing: 8px; }
+    .open-btn {
+      display: block; width: 100%;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff; font-size: 16px; font-weight: 700;
+      padding: 16px; border-radius: 14px; border: none;
+      cursor: pointer; text-decoration: none;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+    }
+    .store-btn {
+      display: block; width: 100%;
+      background: #fff; color: #7c3aed;
+      font-size: 15px; font-weight: 600;
+      padding: 14px; border-radius: 14px;
+      border: 2px solid #ede9fe; cursor: pointer;
+      text-decoration: none; margin-bottom: 12px;
+    }
+    .manual-hint {
+      font-size: 12px; color: #9ca3af; margin-top: 8px; line-height: 1.6;
+    }
+    .spinner { display: none; font-size: 13px; color: #9ca3af; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Ansora</div>
+    <div class="tagline">Compatibility · Connection · Clarity</div>
+    <div class="avatar">💑</div>
+    <div class="invite-text">You've been invited to connect!</div>
+    <div class="invite-sub">Your partner wants to discover your compatibility on Ansora.</div>
+    <div class="code-box">
+      <div class="code-label">Connect Code</div>
+      <div class="code-value" id="code-display">------</div>
+    </div>
+    <a id="open-app-btn" class="open-btn" href="#">Open in Ansora</a>
+    <a id="store-btn" class="store-btn" href="https://play.google.com/store/apps/details?id=com.quixentsolutions.ansora" target="_blank">
+      Download Ansora on Play Store
+    </a>
+    <div class="manual-hint">
+      Already have the app? Open Ansora → Connect tab → Enter the code above.
+    </div>
+  </div>
+
+  <script>
+    const code = window.location.pathname.split('/join/')[1]?.trim() || '';
+    if (code) {
+      const formatted = code.slice(0, 3) + ' ' + code.slice(3);
+      document.getElementById('code-display').textContent = formatted;
+      document.getElementById('open-app-btn').href = 'ansora:///join/' + code;
+    }
+
+    document.getElementById('open-app-btn').addEventListener('click', function(e) {
+      e.preventDefault();
+      window.location = 'ansora:///join/' + code;
+    });
+  </script>
+</body>
+</html>

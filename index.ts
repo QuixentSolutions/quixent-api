@@ -48,6 +48,10 @@ app.get('/test', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'public', 'delete-account.html'));
   });
 
+  app.get('/join/:code', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'join.html'));
+  });
+
   app.use('/auth', authRouter);
   app.use('/match', matchRouter);
 
