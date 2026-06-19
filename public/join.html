@@ -80,8 +80,10 @@
   </div>
 
   <script>
-    const code = window.location.pathname.split('/join/')[1]?.trim() || '';
-    if (code) {
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    const code = segments[segments.length - 1] || '';
+
+    if (code && /^\d{6}$/.test(code)) {
       const formatted = code.slice(0, 3) + ' ' + code.slice(3);
       document.getElementById('code-display').textContent = formatted;
       document.getElementById('open-app-btn').href = 'ansora:///join/' + code;
@@ -89,7 +91,8 @@
 
     document.getElementById('open-app-btn').addEventListener('click', function(e) {
       e.preventDefault();
-      window.location = 'ansora:///join/' + code;
+      if (!code) return;
+      window.location.href = 'ansora:///join/' + code;
     });
   </script>
 </body>
