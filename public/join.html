@@ -71,14 +71,19 @@
       <span id="status-text">Opening Ansora…</span>
     </div>
     <div class="fallback" id="fallback" style="display:none;">
-      Didn't open? <a id="open-link" href="#">Open Ansora</a> · <a href="https://play.google.com/store/apps/details?id=com.quixentsolutions.ansora">Download</a>
+      Didn't open? <a id="open-link" href="#">Open Ansora</a> · <a id="store-link" href="#">Download</a>
     </div>
   </div>
 
   <script>
     const segments = window.location.pathname.split('/').filter(Boolean);
     const code = segments[segments.length - 1] || '';
-    const storeUrl = 'https://play.google.com/store/apps/details?id=com.quixentsolutions.ansora';
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const storeUrl = isIOS
+      ? 'https://apps.apple.com/app/ansora/id6738420794'
+      : 'https://play.google.com/store/apps/details?id=com.quixentsolutions.ansora';
+    const storeLabel = isIOS ? 'App Store' : 'Play Store';
+    document.getElementById('store-link').href = storeUrl;
 
     if (code && /^\d{6}$/.test(code)) {
       document.getElementById('code-display').textContent = code.slice(0, 3) + ' ' + code.slice(3);
@@ -87,19 +92,18 @@
       // Try to open app
       window.location.href = 'ansora://join/' + code;
 
-      // If app not installed, redirect to Play Store after 1.5s
+      // If app not installed, redirect to correct store after 1.5s
       const timer = setTimeout(function () {
-        document.getElementById('status-text').textContent = 'Redirecting to Play Store…';
+        document.getElementById('status-text').textContent = 'Redirecting to ' + storeLabel + '…';
         setTimeout(function () {
           window.location.href = storeUrl;
         }, 500);
       }, 1500);
 
-      // App opened → page goes hidden → cancel Play Store redirect
+      // App opened → page goes hidden → cancel store redirect
       document.addEventListener('visibilitychange', function () {
         if (document.hidden) {
           clearTimeout(timer);
-          // Show fallback links when user comes back
           setTimeout(function () {
             if (document.hidden) return;
             document.getElementById('status').style.display = 'none';
@@ -109,7 +113,6 @@
       });
       window.addEventListener('blur', function () { clearTimeout(timer); });
     } else {
-      // No code in URL — just show Play Store
       document.getElementById('status-text').textContent = 'Download Ansora to get started';
       setTimeout(function () { window.location.href = storeUrl; }, 2000);
     }
