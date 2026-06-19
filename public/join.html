@@ -8,7 +8,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+      background: linear-gradient(160deg, #fff0f2 0%, #ffe4e8 100%);
       min-height: 100vh;
       display: flex; align-items: center; justify-content: center;
       padding: 24px;
@@ -20,43 +20,43 @@
       max-width: 400px;
       width: 100%;
       text-align: center;
-      box-shadow: 0 8px 40px rgba(124, 58, 237, 0.15);
+      box-shadow: 0 8px 40px rgba(200, 16, 46, 0.15);
     }
-    .logo { font-size: 28px; font-weight: 800; color: #7c3aed; letter-spacing: 1px; margin-bottom: 8px; }
-    .tagline { font-size: 13px; color: #9ca3af; margin-bottom: 32px; }
+    .logo { font-size: 28px; font-weight: 800; color: #C8102E; letter-spacing: 1px; margin-bottom: 4px; }
+    .tagline { font-size: 13px; color: #9ca3af; margin-bottom: 28px; }
     .avatar { font-size: 52px; margin-bottom: 16px; }
-    .invite-text { font-size: 18px; font-weight: 600; color: #1a1a2e; margin-bottom: 6px; }
-    .invite-sub { font-size: 14px; color: #6b7280; margin-bottom: 28px; line-height: 1.5; }
+    .invite-text { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
+    .invite-sub { font-size: 14px; color: #6b7280; margin-bottom: 28px; line-height: 1.6; }
     .code-box {
-      background: #f5f3ff;
-      border: 2px solid #ede9fe;
+      background: #fff5f7;
+      border: 2px solid #ffd6dd;
       border-radius: 16px;
-      padding: 18px;
+      padding: 20px;
       margin-bottom: 28px;
     }
-    .code-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-    .code-value { font-size: 36px; font-weight: 800; color: #7c3aed; letter-spacing: 8px; }
+    .code-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+    .code-value { font-size: 38px; font-weight: 800; color: #C8102E; letter-spacing: 10px; }
     .open-btn {
       display: block; width: 100%;
-      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      background: #C8102E;
       color: #fff; font-size: 16px; font-weight: 700;
       padding: 16px; border-radius: 14px; border: none;
       cursor: pointer; text-decoration: none;
       margin-bottom: 12px;
-      box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+      box-shadow: 0 4px 16px rgba(200, 16, 46, 0.35);
     }
+    .open-btn:active { opacity: 0.9; }
     .store-btn {
       display: block; width: 100%;
-      background: #fff; color: #7c3aed;
+      background: #fff; color: #C8102E;
       font-size: 15px; font-weight: 600;
       padding: 14px; border-radius: 14px;
-      border: 2px solid #ede9fe; cursor: pointer;
-      text-decoration: none; margin-bottom: 12px;
+      border: 2px solid #ffd6dd; cursor: pointer;
+      text-decoration: none; margin-bottom: 16px;
     }
     .manual-hint {
-      font-size: 12px; color: #9ca3af; margin-top: 8px; line-height: 1.6;
+      font-size: 12px; color: #9ca3af; line-height: 1.7;
     }
-    .spinner { display: none; font-size: 13px; color: #9ca3af; margin-top: 16px; }
   </style>
 </head>
 <body>
@@ -71,7 +71,7 @@
       <div class="code-value" id="code-display">------</div>
     </div>
     <a id="open-app-btn" class="open-btn" href="#">Open in Ansora</a>
-    <a id="store-btn" class="store-btn" href="https://play.google.com/store/apps/details?id=com.quixentsolutions.ansora" target="_blank">
+    <a class="store-btn" href="https://play.google.com/store/apps/details?id=com.quixentsolutions.ansora" target="_blank">
       Download Ansora on Play Store
     </a>
     <div class="manual-hint">
