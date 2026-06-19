@@ -82,12 +82,42 @@
   <script>
     const segments = window.location.pathname.split('/').filter(Boolean);
     const code = segments[segments.length - 1] || '';
+    const storeUrl = 'https://play.google.com/store/apps/details?id=com.quixentsolutions.ansora';
 
     if (code && /^\d{6}$/.test(code)) {
       const formatted = code.slice(0, 3) + ' ' + code.slice(3);
       document.getElementById('code-display').textContent = formatted;
       document.getElementById('open-app-btn').href = 'ansora://join/' + code;
+
+      // Auto-try to open app immediately
+      window.location.href = 'ansora://join/' + code;
+
+      // If app is not installed, redirect to Play Store after 1.5s
+      const timer = setTimeout(function() {
+        window.location.href = storeUrl;
+      }, 1500);
+
+      // If app opened, page goes hidden — cancel the Play Store redirect
+      document.addEventListener('visibilitychange', function() {
+        if (document.hidden) clearTimeout(timer);
+      });
+      window.addEventListener('blur', function() {
+        clearTimeout(timer);
+      });
     }
+
+    document.getElementById('open-app-btn').addEventListener('click', function() {
+      clearTimeout(window._storeTimer);
+      window.location.href = 'ansora://join/' + code;
+      window._storeTimer = setTimeout(function() {
+        window.location.href = storeUrl;
+      }, 1500);
+    });
+
+    document.getElementById('store-btn').addEventListener('click', function(e) {
+      e.preventDefault();
+      window.location.href = storeUrl;
+    });
   </script>
 </body>
 </html>
