@@ -242,6 +242,9 @@ export const submitSingleAnswerService = async (
     await match.save();
     sendPushNotification(match.senderId, 'Score Ready! 🎉', `Your compatibility score is ${score.compatibility}%`);
     sendPushNotification(match.receiverId, 'Score Ready! 🎉', `Your compatibility score is ${score.compatibility}%`);
+  } else if (answered >= total) {
+    const partnerId = userId === match.senderId ? match.receiverId : match.senderId;
+    sendPushNotification(partnerId, 'Your turn! 🎯', 'Your partner has answered all questions. Go answer yours!');
   }
 
   return { answered, total };

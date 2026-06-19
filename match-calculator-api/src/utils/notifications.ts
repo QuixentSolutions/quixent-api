@@ -8,7 +8,7 @@ export async function sendPushNotification(userId: string, title: string, body: 
 
     const response = await axios.post(
       'https://exp.host/--/api/v2/push/send',
-      { to: record.token, title, body, sound: 'default' },
+      { to: record.token, title, body, sound: 'default', priority: 'high', channelId: 'default' },
       { timeout: 5000 },
     );
 
