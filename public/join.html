@@ -86,14 +86,8 @@
     if (code && /^\d{6}$/.test(code)) {
       const formatted = code.slice(0, 3) + ' ' + code.slice(3);
       document.getElementById('code-display').textContent = formatted;
-      document.getElementById('open-app-btn').href = 'ansora:///join/' + code;
+      document.getElementById('open-app-btn').href = 'ansora://join/' + code;
     }
-
-    document.getElementById('open-app-btn').addEventListener('click', function(e) {
-      e.preventDefault();
-      if (!code) return;
-      window.location.href = 'ansora:///join/' + code;
-    });
   </script>
 </body>
 </html>
