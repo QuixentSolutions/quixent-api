@@ -36,27 +36,23 @@
     }
     .code-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
     .code-value { font-size: 38px; font-weight: 800; color: #C8102E; letter-spacing: 10px; }
-    .open-btn {
-      display: block; width: 100%;
-      background: #C8102E;
-      color: #fff; font-size: 16px; font-weight: 700;
-      padding: 16px; border-radius: 14px; border: none;
-      cursor: pointer; text-decoration: none;
-      margin-bottom: 12px;
-      box-shadow: 0 4px 16px rgba(200, 16, 46, 0.35);
+    .status {
+      font-size: 15px; color: #6b7280; margin-bottom: 20px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .open-btn:active { opacity: 0.9; }
-    .store-btn {
-      display: block; width: 100%;
-      background: #fff; color: #C8102E;
-      font-size: 15px; font-weight: 600;
-      padding: 14px; border-radius: 14px;
-      border: 2px solid #ffd6dd; cursor: pointer;
-      text-decoration: none; margin-bottom: 16px;
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #C8102E; display: inline-block;
+      animation: pulse 1.2s ease-in-out infinite;
     }
-    .manual-hint {
-      font-size: 12px; color: #9ca3af; line-height: 1.7;
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1); }
     }
+    .fallback { font-size: 12px; color: #c0c0c0; margin-top: 8px; }
+    .fallback a { color: #C8102E; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -70,12 +66,12 @@
       <div class="code-label">Connect Code</div>
       <div class="code-value" id="code-display">------</div>
     </div>
-    <a id="open-app-btn" class="open-btn" href="#">Open in Ansora</a>
-    <a class="store-btn" href="https://play.google.com/store/apps/details?id=com.quixentsolutions.ansora" target="_blank">
-      Download Ansora on Play Store
-    </a>
-    <div class="manual-hint">
-      Already have the app? Open Ansora → Connect tab → Enter the code above.
+    <div class="status" id="status">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span id="status-text">Opening Ansora…</span>
+    </div>
+    <div class="fallback" id="fallback" style="display:none;">
+      Didn't open? <a id="open-link" href="#">Open Ansora</a> · <a href="https://play.google.com/store/apps/details?id=com.quixentsolutions.ansora">Download</a>
     </div>
   </div>
 
@@ -85,39 +81,38 @@
     const storeUrl = 'https://play.google.com/store/apps/details?id=com.quixentsolutions.ansora';
 
     if (code && /^\d{6}$/.test(code)) {
-      const formatted = code.slice(0, 3) + ' ' + code.slice(3);
-      document.getElementById('code-display').textContent = formatted;
-      document.getElementById('open-app-btn').href = 'ansora://join/' + code;
+      document.getElementById('code-display').textContent = code.slice(0, 3) + ' ' + code.slice(3);
+      document.getElementById('open-link').href = 'ansora://join/' + code;
 
-      // Auto-try to open app immediately
+      // Try to open app
       window.location.href = 'ansora://join/' + code;
 
-      // If app is not installed, redirect to Play Store after 1.5s
-      const timer = setTimeout(function() {
-        window.location.href = storeUrl;
+      // If app not installed, redirect to Play Store after 1.5s
+      const timer = setTimeout(function () {
+        document.getElementById('status-text').textContent = 'Redirecting to Play Store…';
+        setTimeout(function () {
+          window.location.href = storeUrl;
+        }, 500);
       }, 1500);
 
-      // If app opened, page goes hidden — cancel the Play Store redirect
-      document.addEventListener('visibilitychange', function() {
-        if (document.hidden) clearTimeout(timer);
+      // App opened → page goes hidden → cancel Play Store redirect
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          clearTimeout(timer);
+          // Show fallback links when user comes back
+          setTimeout(function () {
+            if (document.hidden) return;
+            document.getElementById('status').style.display = 'none';
+            document.getElementById('fallback').style.display = 'block';
+          }, 2000);
+        }
       });
-      window.addEventListener('blur', function() {
-        clearTimeout(timer);
-      });
+      window.addEventListener('blur', function () { clearTimeout(timer); });
+    } else {
+      // No code in URL — just show Play Store
+      document.getElementById('status-text').textContent = 'Download Ansora to get started';
+      setTimeout(function () { window.location.href = storeUrl; }, 2000);
     }
-
-    document.getElementById('open-app-btn').addEventListener('click', function() {
-      clearTimeout(window._storeTimer);
-      window.location.href = 'ansora://join/' + code;
-      window._storeTimer = setTimeout(function() {
-        window.location.href = storeUrl;
-      }, 1500);
-    });
-
-    document.getElementById('store-btn').addEventListener('click', function(e) {
-      e.preventDefault();
-      window.location.href = storeUrl;
-    });
   </script>
 </body>
 </html>
