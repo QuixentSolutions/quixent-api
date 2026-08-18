@@ -1,42 +1,38 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { BlobServiceClient } from '@azure/storage-blob';
 import crypto from 'crypto';
 
-let s3: S3Client | null = null;
+let blobServiceClient: BlobServiceClient | null = null;
 
-function getS3(): S3Client {
-  if (!s3) {
-    const region = process.env.AWS_REGION;
-    const accessKeyId = process.env.AWS_ACCESS_KEY;
-    const secretAccessKey = process.env.AWS_SECRET;
-    if (!region || !accessKeyId || !secretAccessKey) {
-      throw new Error('AWS_REGION, AWS_ACCESS_KEY, AWS_SECRET must be set in .env');
-    }
-    s3 = new S3Client({ region, credentials: { accessKeyId, secretAccessKey } });
+function getAzureClient(): BlobServiceClient {
+  if (!blobServiceClient) {
+    const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
+    if (!connStr) throw new Error('AZURE_STORAGE_CONNECTION_STRING must be set in .env');
+    blobServiceClient = BlobServiceClient.fromConnectionString(connStr);
   }
-  return s3;
+  return blobServiceClient;
 }
 
+const getContainerName = () => process.env.AZURE_STORAGE_CONTAINER_NAME || 'uploads';
+
+const mimeToExt: Record<string, string> = {
+  'image/jpeg': 'jpg', 'image/jpg': 'jpg',
+  'image/png': 'png', 'image/webp': 'webp',
+};
+
 export async function uploadToS3(base64: string, mimetype: string, folder: string): Promise<string> {
-  const bucket = process.env.AWS_BUCKET;
-  const region = process.env.AWS_REGION;
-  if (!bucket || !region) throw new Error('AWS_BUCKET and AWS_REGION must be set in .env');
-
-  const mimeMap: Record<string, string> = {
-    'image/jpeg': 'jpg', 'image/jpg': 'jpg',
-    'image/png': 'png', 'image/webp': 'webp',
-  };
-  const ext = mimeMap[mimetype.toLowerCase()] ?? 'jpg';
-  const key = `${folder}/${crypto.randomBytes(16).toString('hex')}.${ext}`;
-
   const buffer = Buffer.from(base64, 'base64');
   if (buffer.length > 5 * 1024 * 1024) throw new Error('Image must be under 5MB');
 
-  await getS3().send(new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    Body: buffer,
-    ContentType: mimetype,
-  }));
+  const ext = mimeToExt[mimetype.toLowerCase()] ?? 'jpg';
+  const key = `${folder}/${crypto.randomBytes(16).toString('hex')}.${ext}`;
 
-  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+  const containerClient = getAzureClient().getContainerClient(getContainerName());
+  await containerClient.createIfNotExists();
+  const blockBlobClient = containerClient.getBlockBlobClient(key);
+  await blockBlobClient.upload(buffer, buffer.length, {
+    blobHTTPHeaders: { blobContentType: mimetype },
+  });
+
+  const account = process.env.AZURE_STORAGE_ACCOUNT_NAME || '';
+  return `https://${account}.blob.core.windows.net/${getContainerName()}/${key}`;
 }
