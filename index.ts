@@ -40,7 +40,7 @@ app.get('/test', (req, res) => {
 
   res.json({
     success: true,
-    message: '🚀 Quixent API Starting...',
+    message: 'ðŸš€ Quixent API Starting...',
   });
 });
 
@@ -49,6 +49,7 @@ app.get('/test', (req, res) => {
   });
 
   app.get('/join/:code', (req, res) => {
+    res.removeHeader('Content-Security-Policy');
     res.sendFile(path.join(process.cwd(), 'public', 'join.html'));
   });
 
@@ -58,11 +59,12 @@ app.get('/test', (req, res) => {
   app.use(errorHandler);
 
   app.listen(PORT, () => {
-    console.log(`🚀 Quixent API running on http://localhost:${PORT}`);
+    console.log(`ðŸš€ Quixent API running on http://localhost:${PORT}`);
   });
 }
 
 start().catch((err) => {
-  console.error('❌ Failed to start server:', err);
+  console.error('âŒ Failed to start server:', err);
   process.exit(1);
 });
+
