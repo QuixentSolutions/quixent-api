@@ -1,0 +1,103 @@
+import { Router } from 'express';
+import { verifyToken } from '../../../auth/src/middleware/verifyToken';
+import { validate, asyncHandler } from '../utils/validate';
+import { createStallSchema, updateStallSchema, nearbyQuerySchema } from '../schemas/stall.schema';
+import { createReviewSchema } from '../schemas/review.schema';
+import {
+  findNearbyStalls,
+  getApprovedStallById,
+  createStall,
+  updateVendorStall,
+  deleteVendorStall,
+  listVendorStalls,
+} from '../services/stall.service';
+import { listReviewsForStall, upsertReview } from '../services/review.service';
+
+const router = Router();
+
+// --- Public / customer ---
+
+router.get(
+  '/nearby',
+  validate(nearbyQuerySchema, 'query'),
+  asyncHandler(async (req, res) => {
+    const { lat, lng, radiusKm, category } = req.query as unknown as {
+      lat: number;
+      lng: number;
+      radiusKm?: number;
+      category?: string;
+    };
+    const stalls = await findNearbyStalls({ lat, lng, radiusKm, category });
+    res.json({ success: true, stalls });
+  }),
+);
+
+router.get(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const stall = await getApprovedStallById(req.params.id);
+    res.json({ success: true, stall });
+  }),
+);
+
+router.get(
+  '/:id/reviews',
+  asyncHandler(async (req, res) => {
+    const reviews = await listReviewsForStall(req.params.id);
+    res.json({ success: true, reviews });
+  }),
+);
+
+router.post(
+  '/:id/reviews',
+  verifyToken,
+  validate(createReviewSchema),
+  asyncHandler(async (req: any, res) => {
+    const review = await upsertReview(req.params.id, req.user.userId, req.body.rating, req.body.text);
+    res.status(201).json({ success: true, review });
+  }),
+);
+
+// --- Vendor (self-registration + management) ---
+// Anyone with a shared account can become a vendor by registering a stall —
+// "vendor" isn't a role on the shared User, it's just stall ownership.
+
+router.get(
+  '/mine/list',
+  verifyToken,
+  asyncHandler(async (req: any, res) => {
+    const stalls = await listVendorStalls(req.user.userId);
+    res.json({ success: true, stalls });
+  }),
+);
+
+router.post(
+  '/',
+  verifyToken,
+  validate(createStallSchema),
+  asyncHandler(async (req: any, res) => {
+    const stall = await createStall(req.user.userId, req.body);
+    res.status(201).json({ success: true, stall });
+  }),
+);
+
+router.patch(
+  '/:id',
+  verifyToken,
+  validate(updateStallSchema),
+  asyncHandler(async (req: any, res) => {
+    const stall = await updateVendorStall(req.params.id, req.user.userId, req.body);
+    res.json({ success: true, stall });
+  }),
+);
+
+router.delete(
+  '/:id',
+  verifyToken,
+  asyncHandler(async (req: any, res) => {
+    await deleteVendorStall(req.params.id, req.user.userId);
+    res.status(204).send();
+  }),
+);
+
+export default router;
