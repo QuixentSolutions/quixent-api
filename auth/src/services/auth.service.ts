@@ -233,4 +233,15 @@ export const deleteAccountService = async (userId: string) => {
   } catch {
     // non-critical — orphaned match data does not contain PII
   }
+
+  // Fire-and-forget: clean up Thallu Vandi stalls/reviews owned by this user
+  try {
+    await axios.delete(`${process.env.AUTH_API_URL?.replace('/auth', '')}/thallu-vandi/user-data`, {
+      headers: { 'x-internal-secret': process.env.INTERNAL_SECRET ?? '' },
+      data: { userId },
+      timeout: 5000,
+    });
+  } catch {
+    // non-critical — orphaned stall/review data does not contain PII beyond what's already public
+  }
 };

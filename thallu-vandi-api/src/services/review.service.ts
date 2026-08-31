@@ -3,7 +3,7 @@ import Review from '../models/Review';
 import Stall from '../models/Stall';
 import User from '../../../auth/src/models/User';
 
-async function recomputeStallRating(stallId: string) {
+export async function recomputeStallRating(stallId: string) {
   const stats = await Review.aggregate([
     { $match: { stallId: new Types.ObjectId(stallId) } },
     { $group: { _id: '$stallId', avg: { $avg: '$rating' }, count: { $sum: 1 } } },

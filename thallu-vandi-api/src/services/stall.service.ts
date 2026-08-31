@@ -1,4 +1,6 @@
 import Stall from '../models/Stall';
+import Review from '../models/Review';
+import { recomputeStallRating } from './review.service';
 
 const DEFAULT_SEARCH_RADIUS_KM = Number(process.env.THALLUVANDI_SEARCH_RADIUS_KM ?? 5);
 
@@ -106,4 +108,15 @@ export async function setStallStatus(stallId: string, status: 'approved' | 'reje
   stall.status = status;
   await stall.save();
   return stall;
+}
+
+// Called by the shared auth service on account deletion — same pattern as
+// match-calculator-api's deleteUserDataService.
+export async function deleteUserDataService(userId: string) {
+  await Stall.deleteMany({ vendorId: userId });
+
+  const reviews = await Review.find({ userId }).select('stallId').lean();
+  const affectedStallIds = [...new Set(reviews.map((r) => r.stallId.toString()))];
+  await Review.deleteMany({ userId });
+  await Promise.all(affectedStallIds.map((id) => recomputeStallRating(id)));
 }
