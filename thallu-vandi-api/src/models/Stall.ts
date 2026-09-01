@@ -20,6 +20,8 @@ export interface IStallDocument extends Document {
   };
   photos: string[];
   menuItems: IMenuItem[];
+  openTime?: string; // "HH:mm", 24-hour, stall-local time — single-city pilot, no timezone field needed
+  closeTime?: string;
   status: StallStatus;
   ratingAvg: number;
   ratingCount: number;
@@ -47,6 +49,8 @@ const StallSchema = new Schema<IStallDocument>(
     },
     photos: { type: [String], default: [] },
     menuItems: { type: [MenuItemSchema], default: [] },
+    openTime: { type: String },
+    closeTime: { type: String },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
     ratingAvg: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },

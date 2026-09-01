@@ -6,6 +6,8 @@ const menuItemSchema = z.object({
   photoUrl: z.string().url().optional(),
 });
 
+const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Time must be in HH:mm 24-hour format');
+
 export const createStallSchema = z.object({
   name: z.string().trim().min(1).max(100),
   category: z.string().trim().min(1).max(50),
@@ -13,6 +15,8 @@ export const createStallSchema = z.object({
   lng: z.number().min(-180).max(180),
   photos: z.array(z.string().url()).max(10).optional(),
   menuItems: z.array(menuItemSchema).max(100).optional(),
+  openTime: timeSchema.optional(),
+  closeTime: timeSchema.optional(),
 });
 
 export const updateStallSchema = createStallSchema.partial();
