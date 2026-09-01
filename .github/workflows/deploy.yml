@@ -1,4 +1,4 @@
-name: Deploy to EC2 (Docker)
+name: Deploy to Azure VM
 
 on:
   push:
@@ -10,29 +10,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup SSH key
+      - name: Setup SSH
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          echo "${{ secrets.AZURE_VM_SSH_KEY }}" > key.pem
           chmod 400 key.pem
 
-      - name: Deploy to EC2
+      - name: Deploy
         env:
-          EC2_USER: ${{ secrets.EC2_USER }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
+          HOST: ${{ secrets.AZURE_VM_HOST }}
+          USER: ${{ secrets.AZURE_VM_USER }}
         run: |
-          ssh -o StrictHostKeyChecking=no -i key.pem $EC2_USER@$EC2_HOST << 'EOF'
-            
-            echo "📂 Navigating to project folder..."
-            cd repos/quixent-api/   # 🔥 
+          ssh -o StrictHostKeyChecking=no \
+              -i key.pem \
+              $USER@$HOST << 'EOF'
 
-            echo "📥 Pulling latest code..."
+            cd ~/apps/newshop-trichy-api
+
             git pull origin main
 
-            echo "🐳 Running deploy script..."
             chmod +x deploy.sh
+
             ./deploy.sh
 
           EOF
