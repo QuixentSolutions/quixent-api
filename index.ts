@@ -61,7 +61,7 @@ app.get('/test', (req, res) => {
 
   app.use('/auth', authRouter);
   app.use('/match', matchRouter);
-  app.use('/thallu-vandi', thalluVandiRouter);
+  app.use('/streeteats', thalluVandiRouter);
 
   app.use(errorHandler);
 
