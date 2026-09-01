@@ -22,6 +22,18 @@ function near(latOffset: number, lngOffset: number) {
 const FAKE_VENDOR_ID = '000000000000000000000001';
 const FAKE_CUSTOMER_ID = '000000000000000000000002';
 
+// Same URLs as the mobile app's constants/theme.ts category fallback images
+// (Wikimedia Commons, CC-licensed, free for commercial use) — real photos
+// instead of leaving `photos: []` and relying on the app's emoji fallback.
+const CATEGORY_IMAGE: Record<string, string> = {
+  chai: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/GurgaonManMakingChai.jpg/960px-GurgaonManMakingChai.jpg',
+  dosa: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Masala_dosa_01.jpg/960px-Masala_dosa_01.jpg',
+  chaat: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Pani_Puri-Street_food.jpg/960px-Pani_Puri-Street_food.jpg',
+  juice: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Sugarcane_Juice_Machine.jpg/960px-Sugarcane_Juice_Machine.jpg',
+  snacks: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Samosa_4.jpg/960px-Samosa_4.jpg',
+  other: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Indian_street_food_on_wheels.jpg/960px-Indian_street_food_on_wheels.jpg',
+};
+
 const sampleStalls = [
   {
     name: 'Ravi Chai Point',
@@ -103,7 +115,7 @@ async function main() {
       name: sample.name,
       category: sample.category,
       location: { type: 'Point', coordinates: [sample.lng, sample.lat] },
-      photos: [],
+      photos: [CATEGORY_IMAGE[sample.category] ?? CATEGORY_IMAGE.other],
       menuItems: sample.menuItems,
       status: 'approved',
     });
