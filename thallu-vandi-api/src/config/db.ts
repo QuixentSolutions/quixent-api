@@ -1,15 +1,15 @@
 import mongoose, { Connection } from 'mongoose';
 
-// Same shared "applications" cluster match-calculator-api uses — Stall/Review
-// collections just live alongside its Answer/Match/Question collections in
-// the same database, distinguished by collection name only (no dbName override,
-// matching match-calculator-api/src/config/db.ts exactly).
+// Same Atlas cluster match-calculator-api uses (same APPS_MONGO_URI, no new
+// env var or Atlas resource needed), but its own database via the dbName
+// option — previously had no dbName override, which silently landed both
+// products' collections in Mongo's default "test" database together.
 export let thalluVandiDb: Connection;
 
 export const connectThalluVandiDB = async (): Promise<void> => {
   const mongoUri = process.env.APPS_MONGO_URI;
   if (!mongoUri) throw new Error('APPS_MONGO_URI is not set in .env');
-  thalluVandiDb = mongoose.createConnection(mongoUri);
+  thalluVandiDb = mongoose.createConnection(mongoUri, { dbName: 'thallu-vandi' });
   await thalluVandiDb.asPromise();
-  console.log('✅ Thallu Vandi MongoDB connected');
+  console.log('✅ Thallu Vandi MongoDB connected (db: thallu-vandi)');
 };
