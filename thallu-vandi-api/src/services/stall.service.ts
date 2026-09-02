@@ -38,6 +38,7 @@ export async function getApprovedStallById(id: string) {
 
 export async function createStall(vendorId: string, data: {
   name: string;
+  description?: string;
   categories: string[];
   lat: number;
   lng: number;
@@ -49,6 +50,7 @@ export async function createStall(vendorId: string, data: {
   return Stall.create({
     vendorId,
     name: data.name,
+    description: data.description,
     categories: data.categories,
     location: { type: 'Point', coordinates: [data.lng, data.lat] },
     photos: data.photos ?? [],
@@ -67,6 +69,7 @@ export async function getStallOwnedByVendor(stallId: string, vendorId: string) {
 
 export async function updateVendorStall(stallId: string, vendorId: string, data: Partial<{
   name: string;
+  description: string;
   categories: string[];
   lat: number;
   lng: number;
@@ -78,6 +81,7 @@ export async function updateVendorStall(stallId: string, vendorId: string, data:
   const stall = await getStallOwnedByVendor(stallId, vendorId);
 
   if (data.name !== undefined) stall.name = data.name;
+  if (data.description !== undefined) stall.description = data.description;
   if (data.categories !== undefined) stall.categories = data.categories;
   if (data.lat !== undefined && data.lng !== undefined) {
     stall.location = { type: 'Point', coordinates: [data.lng, data.lat] };

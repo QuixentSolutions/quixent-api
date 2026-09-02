@@ -13,6 +13,7 @@ export interface IMenuItem {
 export interface IStallDocument extends Document {
   vendorId: string; // shared auth user's _id (auth/src/models/User.ts) — plain string, no cross-DB ref
   name: string;
+  description?: string;
   categories: string[];
   location: {
     type: 'Point';
@@ -42,6 +43,7 @@ const StallSchema = new Schema<IStallDocument>(
   {
     vendorId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true },
+    description: { type: String, trim: true, maxlength: 500 },
     categories: {
       type: [String],
       required: true,
