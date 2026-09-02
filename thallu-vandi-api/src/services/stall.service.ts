@@ -22,7 +22,8 @@ export async function findNearbyStalls(params: {
     },
   };
   if (params.category) {
-    filter.category = params.category;
+    // Array field — Mongo matches this against any element, not full equality.
+    filter.categories = params.category;
   }
 
   return Stall.find(filter).limit(200);
@@ -36,7 +37,7 @@ export async function getApprovedStallById(id: string) {
 
 export async function createStall(vendorId: string, data: {
   name: string;
-  category: string;
+  categories: string[];
   lat: number;
   lng: number;
   photos?: string[];
@@ -47,7 +48,7 @@ export async function createStall(vendorId: string, data: {
   return Stall.create({
     vendorId,
     name: data.name,
-    category: data.category,
+    categories: data.categories,
     location: { type: 'Point', coordinates: [data.lng, data.lat] },
     photos: data.photos ?? [],
     menuItems: data.menuItems ?? [],
@@ -65,7 +66,7 @@ export async function getStallOwnedByVendor(stallId: string, vendorId: string) {
 
 export async function updateVendorStall(stallId: string, vendorId: string, data: Partial<{
   name: string;
-  category: string;
+  categories: string[];
   lat: number;
   lng: number;
   photos: string[];
@@ -76,7 +77,7 @@ export async function updateVendorStall(stallId: string, vendorId: string, data:
   const stall = await getStallOwnedByVendor(stallId, vendorId);
 
   if (data.name !== undefined) stall.name = data.name;
-  if (data.category !== undefined) stall.category = data.category;
+  if (data.categories !== undefined) stall.categories = data.categories;
   if (data.lat !== undefined && data.lng !== undefined) {
     stall.location = { type: 'Point', coordinates: [data.lng, data.lat] };
   }

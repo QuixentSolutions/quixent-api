@@ -10,7 +10,7 @@ const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Time must be i
 
 export const createStallSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  category: z.string().trim().min(1).max(50),
+  categories: z.array(z.string().trim().min(1).max(50)).min(1).max(5),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   photos: z.array(z.string().url()).max(10).optional(),
