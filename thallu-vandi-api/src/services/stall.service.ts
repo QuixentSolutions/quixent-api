@@ -1,6 +1,7 @@
 import Stall from '../models/Stall';
 import Review from '../models/Review';
 import { recomputeStallRating } from './review.service';
+import { deleteUserFavorites } from './favorite.service';
 
 const DEFAULT_SEARCH_RADIUS_KM = Number(process.env.THALLUVANDI_SEARCH_RADIUS_KM ?? 5);
 
@@ -128,4 +129,6 @@ export async function deleteUserDataService(userId: string) {
   const affectedStallIds = [...new Set(reviews.map((r) => r.stallId.toString()))];
   await Review.deleteMany({ userId });
   await Promise.all(affectedStallIds.map((id) => recomputeStallRating(id)));
+
+  await deleteUserFavorites(userId);
 }

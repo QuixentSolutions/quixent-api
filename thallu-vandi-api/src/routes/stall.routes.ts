@@ -12,6 +12,7 @@ import {
   listVendorStalls,
 } from '../services/stall.service';
 import { listReviewsForStall, upsertReview } from '../services/review.service';
+import { addFavorite, removeFavorite, listFavoriteStallIds, listFavoriteStalls } from '../services/favorite.service';
 
 const router = Router();
 
@@ -29,6 +30,25 @@ router.get(
     };
     const stalls = await findNearbyStalls({ lat, lng, radiusKm, category });
     res.json({ success: true, stalls });
+  }),
+);
+
+// Registered before /:id so "favorites" isn't captured as a stall id.
+router.get(
+  '/favorites',
+  verifyToken,
+  asyncHandler(async (req: any, res) => {
+    const stalls = await listFavoriteStalls(req.user.userId);
+    res.json({ success: true, stalls });
+  }),
+);
+
+router.get(
+  '/favorites/ids',
+  verifyToken,
+  asyncHandler(async (req: any, res) => {
+    const stallIds = await listFavoriteStallIds(req.user.userId);
+    res.json({ success: true, stallIds });
   }),
 );
 
@@ -55,6 +75,24 @@ router.post(
   asyncHandler(async (req: any, res) => {
     const review = await upsertReview(req.params.id, req.user.userId, req.body.rating, req.body.text);
     res.status(201).json({ success: true, review });
+  }),
+);
+
+router.post(
+  '/:id/favorite',
+  verifyToken,
+  asyncHandler(async (req: any, res) => {
+    await addFavorite(req.params.id, req.user.userId);
+    res.status(201).json({ success: true });
+  }),
+);
+
+router.delete(
+  '/:id/favorite',
+  verifyToken,
+  asyncHandler(async (req: any, res) => {
+    await removeFavorite(req.params.id, req.user.userId);
+    res.status(204).send();
   }),
 );
 
