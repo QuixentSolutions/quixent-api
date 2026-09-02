@@ -41,6 +41,8 @@ export async function createStall(vendorId: string, data: {
   lng: number;
   photos?: string[];
   menuItems?: { name: string; price?: number; photoUrl?: string }[];
+  openTime?: string;
+  closeTime?: string;
 }) {
   return Stall.create({
     vendorId,
@@ -49,6 +51,8 @@ export async function createStall(vendorId: string, data: {
     location: { type: 'Point', coordinates: [data.lng, data.lat] },
     photos: data.photos ?? [],
     menuItems: data.menuItems ?? [],
+    openTime: data.openTime,
+    closeTime: data.closeTime,
     status: 'pending',
   });
 }
@@ -66,6 +70,8 @@ export async function updateVendorStall(stallId: string, vendorId: string, data:
   lng: number;
   photos: string[];
   menuItems: { name: string; price?: number; photoUrl?: string }[];
+  openTime: string;
+  closeTime: string;
 }>) {
   const stall = await getStallOwnedByVendor(stallId, vendorId);
 
@@ -76,6 +82,8 @@ export async function updateVendorStall(stallId: string, vendorId: string, data:
   }
   if (data.photos !== undefined) stall.photos = data.photos;
   if (data.menuItems !== undefined) stall.menuItems = data.menuItems as any;
+  if (data.openTime !== undefined) stall.openTime = data.openTime;
+  if (data.closeTime !== undefined) stall.closeTime = data.closeTime;
 
   // Edits on an already-approved stall go back to pending, so vendors can't
   // slip changes past moderation once the listing is live.
