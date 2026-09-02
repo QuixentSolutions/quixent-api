@@ -52,6 +52,10 @@ app.get('/test', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'public', 'delete-account.html'));
   });
 
+  app.get('/delete-account/streeteats', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'delete-account-streeteats.html'));
+  });
+
   app.get('/join/:code', (req, res) => {
     res.removeHeader('Content-Security-Policy');
     res.sendFile(path.join(process.cwd(), 'public', 'join.html'));
@@ -59,7 +63,7 @@ app.get('/test', (req, res) => {
 
   app.use('/auth', authRouter);
   app.use('/match', matchRouter);
-  app.use('/thallu-vandi', thalluVandiRouter);
+  app.use('/streeteats', thalluVandiRouter);
   app.use('/turf-spot', turfSpotRouter);
 
   app.use(errorHandler);

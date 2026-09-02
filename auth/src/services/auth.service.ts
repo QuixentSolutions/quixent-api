@@ -236,7 +236,7 @@ export const deleteAccountService = async (userId: string) => {
 
   // Fire-and-forget: clean up Thallu Vandi stalls/reviews owned by this user
   try {
-    await axios.delete(`${process.env.AUTH_API_URL?.replace('/auth', '')}/thallu-vandi/user-data`, {
+    await axios.delete(`${process.env.AUTH_API_URL?.replace('/auth', '')}/streeteats/user-data`, {
       headers: { 'x-internal-secret': process.env.INTERNAL_SECRET ?? '' },
       data: { userId },
       timeout: 5000,
