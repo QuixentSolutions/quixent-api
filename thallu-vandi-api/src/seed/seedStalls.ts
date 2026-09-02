@@ -101,7 +101,7 @@ async function main() {
     const stall = await Stall.create({
       vendorId: FAKE_VENDOR_ID,
       name: sample.name,
-      category: sample.category,
+      categories: [sample.category],
       location: { type: 'Point', coordinates: [sample.lng, sample.lat] },
       photos: [],
       menuItems: sample.menuItems,
