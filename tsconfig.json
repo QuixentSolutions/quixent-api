@@ -17,13 +17,16 @@
     "match-calculator-api/index.ts",
     "match-calculator-api/src/**/*.ts",
     "thallu-vandi-api/index.ts",
-    "thallu-vandi-api/src/**/*.ts"
+    "thallu-vandi-api/src/**/*.ts",
+    "turf-api/index.ts",
+    "turf-api/src/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "auth/node_modules",
     "match-calculator-api/node_modules",
-    "thallu-vandi-api/node_modules"
+    "thallu-vandi-api/node_modules",
+    "turf-api/node_modules"
   ]
 }

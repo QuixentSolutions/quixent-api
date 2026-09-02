@@ -7,15 +7,17 @@ import cookieParser from 'cookie-parser';
 import { connectAuthDB } from './auth/src/config/db';
 import { connectMatchDB } from './match-calculator-api/src/config/db';
 import { connectThalluVandiDB } from './thallu-vandi-api/src/config/db';
+import { connectTurfDB } from './turf-api/src/config/db';
 
 async function start() {
-  await Promise.all([connectAuthDB(), connectMatchDB(), connectThalluVandiDB()]);
+  await Promise.all([connectAuthDB(), connectMatchDB(), connectThalluVandiDB(), connectTurfDB()]);
 
   // Dynamic imports run after all DBs are connected so model files
-  // can safely call authDb.model() / matchDb.model() / thalluVandiDb.model() at evaluation time.
+  // can safely call authDb.model() / matchDb.model() / thalluVandiDb.model() / turfDb.model() at evaluation time.
   const { default: authRouter } = await import('./auth/index');
   const { default: matchRouter } = await import('./match-calculator-api/index');
   const { default: thalluVandiRouter } = await import('./thallu-vandi-api/index');
+  const { default: turfRouter } = await import('./turf-api/index');
   const { errorHandler } = await import('./auth/src/middleware/errorHandler');
 
   const app = express();
@@ -62,6 +64,7 @@ app.get('/test', (req, res) => {
   app.use('/auth', authRouter);
   app.use('/match', matchRouter);
   app.use('/streeteats', thalluVandiRouter);
+  app.use('/turf', turfRouter);
 
   app.use(errorHandler);
 

@@ -244,4 +244,15 @@ export const deleteAccountService = async (userId: string) => {
   } catch {
     // non-critical — orphaned stall/review data does not contain PII beyond what's already public
   }
+
+  // Fire-and-forget: clean up Turf listings/bookings/reviews owned by this user
+  try {
+    await axios.delete(`${process.env.AUTH_API_URL?.replace('/auth', '')}/turf/user-data`, {
+      headers: { 'x-internal-secret': process.env.INTERNAL_SECRET ?? '' },
+      data: { userId },
+      timeout: 5000,
+    });
+  } catch {
+    // non-critical — orphaned turf data does not contain PII beyond what's already public
+  }
 };
