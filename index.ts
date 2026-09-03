@@ -54,6 +54,10 @@ app.get('/test', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'public', 'delete-account-streeteats.html'));
   });
 
+  app.get('/streeteats-logo.png', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'streeteats-logo.png'));
+  });
+
   app.get('/join/:code', (req, res) => {
     res.removeHeader('Content-Security-Policy');
     res.sendFile(path.join(process.cwd(), 'public', 'join.html'));

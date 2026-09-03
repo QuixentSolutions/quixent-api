@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { verifyToken } from '../../../auth/src/middleware/verifyToken';
 import { validate, asyncHandler } from '../utils/validate';
-import { createStallSchema, updateStallSchema, nearbyQuerySchema } from '../schemas/stall.schema';
+import { createStallSchema, updateStallSchema, nearbyQuerySchema, allStallsQuerySchema } from '../schemas/stall.schema';
 import { createReviewSchema } from '../schemas/review.schema';
 import {
   findNearbyStalls,
+  listAllStalls,
   getApprovedStallById,
   createStall,
   updateVendorStall,
@@ -35,6 +36,18 @@ router.get(
       category?: string;
     };
     const stalls = await findNearbyStalls({ lat, lng, radiusKm, category });
+    res.json({ success: true, stalls });
+  }),
+);
+
+// No location required — the "All Stalls" filter in the app, independent of
+// the /nearby flow above (which still requires lat/lng as before).
+router.get(
+  '/all',
+  validate(allStallsQuerySchema, 'query'),
+  asyncHandler(async (req, res) => {
+    const { category } = req.query as unknown as { category?: string };
+    const stalls = await listAllStalls({ category });
     res.json({ success: true, stalls });
   }),
 );
