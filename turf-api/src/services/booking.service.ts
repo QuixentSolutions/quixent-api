@@ -4,6 +4,7 @@ import Turf from '../models/Turf';
 import User from '../../../auth/src/models/User';
 import { resolveBookingWindow } from './availability.service';
 import { getOwnedTurf } from './turf.service';
+import { computeFeeBreakdown } from '../config/fees';
 
 const CANCEL_CUTOFF_HOURS = Number(process.env.TURFSPOT_CANCEL_CUTOFF_HOURS ?? 4);
 
@@ -48,6 +49,10 @@ export async function createBooking(userId: string, input: CreateBookingInput) {
 
   const slotCount = input.slotCount ?? 1;
   const resolved = await resolveBookingWindow(input.turfId, input.date, input.startTime, slotCount);
+  // Additive model: resolved.totalPrice is the owner's listed price for this
+  // slot (the base amount) — the platform fee and its GST are ADDED on top
+  // and charged to the customer; the owner is paid out the base in full.
+  const fees = computeFeeBreakdown(resolved.totalPrice);
 
   // Owners are regular customers too — they may book their own turf (e.g. to
   // hold a slot for a walk-in / phone booking). No role separation.
@@ -67,8 +72,20 @@ export async function createBooking(userId: string, input: CreateBookingInput) {
       playerCount: input.playerCount,
       notes: input.notes,
       pricePerSlot: resolved.pricePerSlot,
-      totalPrice: resolved.totalPrice,
-      status: 'confirmed',
+      baseAmount: fees.baseAmount,
+      totalPrice: fees.totalAmount,
+      platformFeePercent: fees.platformFeePercent,
+      gstPercent: fees.gstPercent,
+      platformFeeAmount: fees.platformFeeAmount,
+      cgstAmount: fees.cgstAmount,
+      sgstAmount: fees.sgstAmount,
+      gstAmount: fees.gstAmount,
+      ownerPayoutAmount: fees.ownerPayoutAmount,
+      // Every booking pays via PayU — no "pay at venue" option. It holds the
+      // slot but isn't a real reservation yet: it only becomes 'confirmed'
+      // once payment is verified (see payment.service.handlePayuCallback).
+      paymentMode: 'online',
+      status: 'pending',
       paymentStatus: 'unpaid',
     });
     return booking;
@@ -120,14 +137,19 @@ export async function cancelMyBooking(bookingId: string, userId: string, reason?
     throw { status: 409, message: `Booking is already ${booking.status}`, error: 'BOOKING_NOT_CANCELLABLE' };
   }
 
-  const startsAt = slotStartsAt(booking.date, booking.startTime);
-  const hoursUntil = (startsAt.getTime() - Date.now()) / 3_600_000;
-  if (hoursUntil < CANCEL_CUTOFF_HOURS) {
-    throw {
-      status: 409,
-      message: `Bookings can only be cancelled at least ${CANCEL_CUTOFF_HOURS} hours before the slot`,
-      error: 'CANCEL_CUTOFF_PASSED',
-    };
+  // A booking still awaiting payment hasn't actually reserved anything from
+  // the user's perspective yet — let them drop it any time, no cutoff.
+  const awaitingPayment = booking.status === 'pending' && booking.paymentStatus === 'unpaid';
+  if (!awaitingPayment) {
+    const startsAt = slotStartsAt(booking.date, booking.startTime);
+    const hoursUntil = (startsAt.getTime() - Date.now()) / 3_600_000;
+    if (hoursUntil < CANCEL_CUTOFF_HOURS) {
+      throw {
+        status: 409,
+        message: `Bookings can only be cancelled at least ${CANCEL_CUTOFF_HOURS} hours before the slot`,
+        error: 'CANCEL_CUTOFF_PASSED',
+      };
+    }
   }
 
   booking.status = 'cancelled';
@@ -188,12 +210,53 @@ export async function ownerCancelBooking(bookingId: string, ownerId: string, rea
   return booking;
 }
 
+// Bookings confirm themselves automatically once PayU payment is verified
+// (see payment.service.handlePayuCallback). This endpoint is only for the
+// rare case a payment already succeeded but the booking is still marked
+// pending (e.g. a webhook race) — it can never confirm an unpaid booking, so
+// it can't be used to bypass payment.
 export async function ownerConfirmBooking(bookingId: string, ownerId: string) {
   const booking = await getOwnerBooking(bookingId, ownerId);
   if (booking.status !== 'pending') {
     throw { status: 409, message: `Booking is ${booking.status}, cannot confirm`, error: 'BOOKING_NOT_PENDING' };
   }
+  if (booking.paymentStatus !== 'paid') {
+    throw { status: 409, message: 'Payment has not been completed for this booking yet', error: 'PAYMENT_INCOMPLETE' };
+  }
   booking.status = 'confirmed';
+  await booking.save();
+  return booking;
+}
+
+// Lets the owner flag an offline ("pay at venue") booking as settled once
+// they've actually collected the cash/UPI in person. Online bookings are
+// already marked 'paid' automatically by the PayU callback, so this only
+// makes sense for offline ones.
+export async function ownerMarkPaid(bookingId: string, ownerId: string) {
+  const booking = await getOwnerBooking(bookingId, ownerId);
+  if (booking.paymentMode !== 'offline') {
+    throw { status: 409, message: 'Only offline bookings can be marked paid manually', error: 'NOT_OFFLINE' };
+  }
+  if (booking.paymentStatus === 'paid') {
+    throw { status: 409, message: 'Already marked as paid', error: 'ALREADY_PAID' };
+  }
+  booking.paymentStatus = 'paid';
+  await booking.save();
+  return booking;
+}
+
+// Cancelling a paid booking does NOT call PayU's refund API — this platform
+// doesn't auto-refund online. The owner refunds the player in person at the
+// venue (cash/UPI) and then calls this to reconcile the record.
+export async function ownerMarkRefunded(bookingId: string, ownerId: string) {
+  const booking = await getOwnerBooking(bookingId, ownerId);
+  if (booking.status !== 'cancelled') {
+    throw { status: 409, message: 'Only a cancelled booking can be marked refunded', error: 'NOT_CANCELLED' };
+  }
+  if (booking.paymentStatus !== 'paid') {
+    throw { status: 409, message: `Booking payment is ${booking.paymentStatus}, nothing to refund`, error: 'NOTHING_TO_REFUND' };
+  }
+  booking.paymentStatus = 'refunded';
   await booking.save();
   return booking;
 }
@@ -297,7 +360,15 @@ export async function ownerStats(ownerId: string) {
     Booking.countDocuments({ ownerId, status: 'completed' }),
     Booking.aggregate([
       { $match: { ownerId, status: { $in: ['confirmed', 'completed'] } } },
-      { $group: { _id: null, total: { $sum: '$totalPrice' } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$totalPrice' },
+          netPayout: { $sum: '$ownerPayoutAmount' },
+          platformFees: { $sum: '$platformFeeAmount' },
+          gst: { $sum: '$gstAmount' },
+        },
+      },
     ]),
   ]);
 
@@ -306,6 +377,12 @@ export async function ownerStats(ownerId: string) {
     upcomingBookings: activeBookings,
     todayBookings,
     completedBookings: completed,
+    // Gross = what customers paid (base + platform fee + GST); net = what
+    // settles to the owner, which is just the base amount in full — the fee
+    // and GST are added on top of it, never deducted (see config/fees.ts).
     grossBookingValue: revenueAgg[0]?.total ?? 0,
+    netPayoutValue: revenueAgg[0]?.netPayout ?? 0,
+    platformFeesValue: revenueAgg[0]?.platformFees ?? 0,
+    gstValue: revenueAgg[0]?.gst ?? 0,
   };
 }

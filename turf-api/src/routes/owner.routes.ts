@@ -15,6 +15,8 @@ import {
   ownerConfirmBooking,
   ownerCancelBooking,
   ownerMarkNoShow,
+  ownerMarkPaid,
+  ownerMarkRefunded,
   listBlockedSlots,
   createBlockedSlot,
   deleteBlockedSlot,
@@ -98,6 +100,20 @@ router.patch(
   validate(cancelBookingSchema),
   asyncHandler(async (req: any, res) => {
     res.json({ success: true, booking: await ownerCancelBooking(req.params.id, req.user.userId, req.body.reason) });
+  }),
+);
+
+router.patch(
+  '/bookings/:id/mark-paid',
+  asyncHandler(async (req: any, res) => {
+    res.json({ success: true, booking: await ownerMarkPaid(req.params.id, req.user.userId) });
+  }),
+);
+
+router.patch(
+  '/bookings/:id/mark-refunded',
+  asyncHandler(async (req: any, res) => {
+    res.json({ success: true, booking: await ownerMarkRefunded(req.params.id, req.user.userId) });
   }),
 );
 

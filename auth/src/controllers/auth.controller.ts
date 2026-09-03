@@ -106,8 +106,8 @@ export const getUserById = async (req: AuthRequest, res: Response): Promise<void
 
 export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, gender, age, city, bio, profileImage } = req.body;
-    const user = await updateProfileService(req.user!.userId, { name, gender, age, city, bio, profileImage });
+    const { name, email, gender, age, city, bio, profileImage } = req.body;
+    const user = await updateProfileService(req.user!.userId, { name, email, gender, age, city, bio, profileImage });
     sendSuccess(res, 'Profile updated', { user });
   } catch (err: any) {
     sendError(res, err.message ?? 'Failed to update profile', err.error ?? 'SERVER_ERROR', err.status ?? 500);

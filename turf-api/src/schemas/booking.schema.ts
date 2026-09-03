@@ -8,6 +8,8 @@ export const createBookingSchema = z.object({
   sport: z.string().trim().max(40).optional(),
   playerCount: z.number().int().min(1).max(100).optional(),
   notes: z.string().trim().max(500).optional(),
+  // PayU-only — every booking pays online, so there's no client-chosen
+  // payment mode to accept here (see booking.service.createBooking).
 });
 
 export const cancelBookingSchema = z.object({

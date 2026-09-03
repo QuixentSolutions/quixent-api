@@ -25,6 +25,14 @@ export interface ITurfDocument extends Document {
   photos: string[];
   contactPhone?: string;
 
+  // Owner's PAN — required for payout/GST compliance (platform fee invoicing
+  // needs it). Required by the API on new registrations (see turf.schema.ts)
+  // but not enforced at the model level, so an unrelated edit to a turf
+  // created before this field existed doesn't fail validation. Sensitive:
+  // never returned on public browse/detail reads, only to the owner
+  // themselves and admin — see turf.service.ts's public queries.
+  panNumber?: string;
+
   pricePerHour: number; // base slot price, INR
   // Optional overrides so evening / weekend slots can cost more without a
   // full pricing-rules engine. Each entry: match on weekday and/or hour range.
@@ -84,6 +92,13 @@ const TurfSchema = new Schema<ITurfDocument>(
 
     photos: { type: [String], default: [] },
     contactPhone: { type: String, trim: true },
+
+    panNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      match: [/^[A-Z]{5}[0-9]{4}[A-Z]$/, 'Invalid PAN format'],
+    },
 
     pricePerHour: { type: Number, required: true, min: 0 },
     priceRules: { type: [PriceRuleSchema], default: [] },

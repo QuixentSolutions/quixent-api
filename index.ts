@@ -27,6 +27,9 @@ async function start() {
   app.use(helmet());
   app.use(cors({ origin: allowedOrigins, credentials: true }));
   app.use(express.json());
+  // PayU's surl/furl callback is a standard HTML form POST
+  // (application/x-www-form-urlencoded), not JSON.
+  app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
   app.get('/health', (req, res) => {
@@ -54,6 +57,10 @@ app.get('/test', (req, res) => {
 
   app.get('/delete-account/streeteats', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'public', 'delete-account-streeteats.html'));
+  });
+
+  app.get('/delete-account/turfspot', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'delete-account-turfspot.html'));
   });
 
   app.get('/join/:code', (req, res) => {

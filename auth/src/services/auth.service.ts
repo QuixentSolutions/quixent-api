@@ -134,6 +134,7 @@ export const verifyOtpService = async (mobile: string, code: string) => {
       _id: user._id,
       mobile: user.mobile,
       name: user.name,
+      email: user.email,
       gender: user.gender,
       age: user.age,
       role: user.role,
@@ -187,13 +188,16 @@ export const getUserByIdService = async (userId: string) => {
 
 export const updateProfileService = async (
   userId: string,
-  data: { name?: string; gender?: string; age?: number; city?: string; bio?: string; profileImage?: string },
+  data: { name?: string; email?: string; gender?: string; age?: number; city?: string; bio?: string; profileImage?: string },
 ) => {
   if (data.gender && !['male', 'female'].includes(data.gender)) {
     throw { status: 400, message: 'gender must be male or female.', error: 'INVALID_INPUT' };
   }
   if (data.age !== undefined && (data.age < 18 || data.age > 80)) {
     throw { status: 400, message: 'age must be between 18 and 80.', error: 'INVALID_INPUT' };
+  }
+  if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    throw { status: 400, message: 'Enter a valid email address.', error: 'INVALID_INPUT' };
   }
 
   const user = await User.findByIdAndUpdate(userId, data, { new: true }).select('-__v');

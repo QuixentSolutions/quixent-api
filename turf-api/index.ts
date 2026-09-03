@@ -4,6 +4,7 @@ import bookingRoutes from './src/routes/booking.routes';
 import ownerRoutes from './src/routes/owner.routes';
 import adminRoutes from './src/routes/admin.routes';
 import uploadRoutes from './src/routes/upload.routes';
+import paymentRoutes from './src/routes/payment.routes';
 import { deleteUserDataService } from './src/services/turf.service';
 
 const router = Router();
@@ -13,6 +14,7 @@ router.use('/bookings', bookingRoutes);
 router.use('/owner', ownerRoutes);
 router.use('/admin', adminRoutes);
 router.use('/uploads', uploadRoutes);
+router.use('/payments', paymentRoutes);
 
 // Internal route — called by the shared auth service on account deletion,
 // same pattern as match-calculator-api / thallu-vandi-api.

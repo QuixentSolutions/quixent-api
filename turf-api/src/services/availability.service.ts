@@ -20,6 +20,26 @@ export interface DayAvailability {
   slots: AvailabilitySlot[];
 }
 
+const PAYMENT_HOLD_MINUTES = Number(process.env.TURFSPOT_PAYMENT_HOLD_MINUTES ?? 15);
+
+// A booking created but never paid for shouldn't hold a slot forever — release
+// it once the payment window lapses so someone else can book it. Cheap to
+// call on every availability read; there's no cron job in this codebase.
+async function sweepExpiredPendingBookings(): Promise<void> {
+  const cutoff = new Date(Date.now() - PAYMENT_HOLD_MINUTES * 60_000);
+  await Booking.updateMany(
+    { status: 'pending', paymentStatus: 'unpaid', createdAt: { $lt: cutoff } },
+    {
+      $set: {
+        status: 'cancelled',
+        cancelledBy: 'system',
+        cancellationReason: 'Payment window expired',
+        cancelledAt: new Date(),
+      },
+    },
+  );
+}
+
 function weekdayOf(dateStr: string): Weekday {
   // Interpret the date as local midnight — matches how slots are wall-clock.
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -33,6 +53,7 @@ export async function getTurfForBooking(turfId: string): Promise<ITurfDocument> 
 }
 
 export async function getDayAvailability(turfId: string, date: string): Promise<DayAvailability> {
+  await sweepExpiredPendingBookings();
   const turf = await getTurfForBooking(turfId);
   const weekday = weekdayOf(date);
   const openMinutes = toMinutes(turf.openTime);

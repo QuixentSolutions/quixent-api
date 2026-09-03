@@ -57,7 +57,8 @@ export async function listApprovedTurfs(params: ListParams) {
 
   const sortSpec = sortSpecFor(params.sort, params.q, useGeo);
 
-  const query = Turf.find(match).skip(skip).limit(limit);
+  // Never leak the owner's PAN to a customer-facing browse response.
+  const query = Turf.find(match).select('-panNumber').skip(skip).limit(limit);
   if (sortSpec) query.sort(sortSpec);
 
   const [turfs, total] = await Promise.all([
@@ -102,7 +103,8 @@ function escapeRegex(s: string) {
 }
 
 export async function getApprovedTurfById(id: string) {
-  const turf = await Turf.findOne({ _id: id, status: 'approved' }).lean();
+  // Never leak the owner's PAN to a customer-facing turf-detail response.
+  const turf = await Turf.findOne({ _id: id, status: 'approved' }).select('-panNumber').lean();
   if (!turf) throw { status: 404, message: 'Turf not found', error: 'TURF_NOT_FOUND' };
   return turf;
 }
@@ -136,6 +138,7 @@ export async function listFeaturedTurfs(city?: string, limit = 10) {
   const match: Record<string, unknown> = { status: 'approved', isActive: true };
   if (city) match.city = new RegExp(`^${escapeRegex(city)}$`, 'i');
   return Turf.find(match)
+    .select('-panNumber')
     .sort({ ratingAvg: -1, ratingCount: -1, createdAt: -1 })
     .limit(limit)
     .lean();
@@ -156,6 +159,7 @@ interface TurfInput {
   lng: number;
   photos?: string[];
   contactPhone?: string;
+  panNumber?: string;
   pricePerHour: number;
   priceRules?: any[];
   openTime?: string;
@@ -179,6 +183,7 @@ export async function createTurf(ownerId: string, data: TurfInput) {
     location: { type: 'Point', coordinates: [data.lng, data.lat] },
     photos: data.photos ?? [],
     contactPhone: data.contactPhone,
+    panNumber: data.panNumber,
     pricePerHour: data.pricePerHour,
     priceRules: data.priceRules ?? [],
     openTime: data.openTime ?? '06:00',
@@ -218,6 +223,7 @@ function applyTurfPatch(turf: any, data: Partial<TurfInput>) {
   }
   if (data.photos !== undefined) turf.photos = data.photos;
   if (data.contactPhone !== undefined) turf.contactPhone = data.contactPhone;
+  if (data.panNumber !== undefined) turf.panNumber = data.panNumber;
   if (data.pricePerHour !== undefined) turf.pricePerHour = data.pricePerHour;
   if (data.priceRules !== undefined) turf.priceRules = data.priceRules as any;
   if (data.openTime !== undefined) turf.openTime = data.openTime;
