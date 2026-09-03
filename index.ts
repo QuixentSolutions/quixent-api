@@ -7,15 +7,17 @@ import cookieParser from 'cookie-parser';
 import { connectAuthDB } from './auth/src/config/db';
 import { connectMatchDB } from './match-calculator-api/src/config/db';
 import { connectThalluVandiDB } from './thallu-vandi-api/src/config/db';
+import { connectTurfSpotDB } from './turf-spot-api/src/config/db';
 
 async function start() {
-  await Promise.all([connectAuthDB(), connectMatchDB(), connectThalluVandiDB()]);
+  await Promise.all([connectAuthDB(), connectMatchDB(), connectThalluVandiDB(), connectTurfSpotDB()]);
 
   // Dynamic imports run after all DBs are connected so model files
-  // can safely call authDb.model() / matchDb.model() / thalluVandiDb.model() at evaluation time.
+  // can safely call authDb.model() / matchDb.model() / thalluVandiDb.model() / turfSpotDb.model() at evaluation time.
   const { default: authRouter } = await import('./auth/index');
   const { default: matchRouter } = await import('./match-calculator-api/index');
   const { default: thalluVandiRouter } = await import('./thallu-vandi-api/index');
+  const { default: turfSpotRouter } = await import('./turf-spot-api/index');
   const { errorHandler } = await import('./auth/src/middleware/errorHandler');
 
   const app = express();
@@ -66,6 +68,7 @@ app.get('/test', (req, res) => {
   app.use('/auth', authRouter);
   app.use('/match', matchRouter);
   app.use('/streeteats', thalluVandiRouter);
+  app.use('/turf-spot', turfSpotRouter);
 
   app.use(errorHandler);
 
@@ -75,7 +78,6 @@ app.get('/test', (req, res) => {
 }
 
 start().catch((err) => {
-  console.error('âŒ Failed to start server:', err);
+  console.error('âŒ Failed to start server:', err);
   process.exit(1);
 });
-
