@@ -15,6 +15,10 @@ const OTP_COOLDOWN_MS      = 60 * 1000;
 const MAX_DAILY_REQUESTS   = 10;
 const MAX_ATTEMPTS         = 5;
 const RATE_LIMIT_EXPIRY_MS = 24 * 60 * 60 * 1000;
+// The stored refresh-token row carries a TTL index, so it must outlive the
+// refresh JWT itself or Mongo reaps it early and ends the session. Default
+// ~10 years ("until logout / account delete"); override with REFRESH_TOKEN_TTL_DAYS.
+const REFRESH_TOKEN_TTL_MS = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 3650) * 24 * 60 * 60 * 1000;
 
 // Play Store review accounts — set REVIEW_PHONES and REVIEW_OTP in .env on the server
 const REVIEW_PHONES = process.env.REVIEW_PHONES?.split(',').map(p => p.trim()) ?? [];
@@ -119,7 +123,7 @@ export const verifyOtpService = async (mobile: string, code: string) => {
   await Token.create({
     userId: user._id,
     token: refreshToken,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
   });
 
   return {

@@ -2,6 +2,7 @@ import Turf from '../models/Turf';
 import Booking from '../models/Booking';
 import Review from '../models/Review';
 import BlockedSlot from '../models/BlockedSlot';
+import User from '../../../auth/src/models/User';
 import { recomputeTurfRating } from './review.service';
 
 const DEFAULT_RADIUS_KM = Number(process.env.TURFSPOT_SEARCH_RADIUS_KM ?? 25);
@@ -14,6 +15,7 @@ interface ListParams {
   lat?: number;
   lng?: number;
   radiusKm?: number;
+  nearby?: boolean;
   minPrice?: number;
   maxPrice?: number;
   sort?: 'recommended' | 'price_asc' | 'price_desc' | 'rating' | 'distance';
@@ -37,9 +39,13 @@ export async function listApprovedTurfs(params: ListParams) {
     if (params.maxPrice !== undefined) (match.pricePerHour as any).$lte = params.maxPrice;
   }
 
-  // Geo search uses $geoNear-style $nearSphere and can't combine with $text,
-  // so when both are given, text search wins and distance is computed after.
-  const useGeo = params.lat !== undefined && params.lng !== undefined && !params.q;
+  // Geo filtering is OPT-IN. By default the whole catalogue is returned and
+  // lat/lng are ignored — the Home screen shows every approved turf, and city
+  // is a plain field filter. $nearSphere only kicks in when the user
+  // explicitly asks (nearby=true, or sort=distance) and can't combine with
+  // $text, so a text search always wins over geo.
+  const wantsGeo = params.nearby === true || params.sort === 'distance';
+  const useGeo = wantsGeo && params.lat !== undefined && params.lng !== undefined && !params.q;
   if (useGeo) {
     match.location = {
       $nearSphere: {
@@ -105,6 +111,36 @@ export async function listCities() {
   return Turf.distinct('city', { status: 'approved', isActive: true });
 }
 
+// No separate "sport"/"amenity" catalog collection — these are just the
+// distinct values already used across live turfs. An owner can put anything
+// on their own turf (see normalizeTags in createTurf/applyTurfPatch below);
+// this is what powers the pickers' suggestions and Home's filter chips.
+export async function listSports() {
+  return Turf.distinct('sports', { status: 'approved', isActive: true });
+}
+
+export async function listAmenities() {
+  return Turf.distinct('amenities', { status: 'approved', isActive: true });
+}
+
+// Trim, lowercase and dedupe so "Football", "football " and "FOOTBALL" from
+// different owners all collapse into one filterable/aggregatable value.
+function normalizeTags(arr?: string[]): string[] {
+  if (!arr) return [];
+  return [...new Set(arr.map((s) => s.trim().toLowerCase()).filter(Boolean))];
+}
+
+// Home "Featured" rail — highest-rated live turfs, newest as the tiebreaker
+// (and as the fallback before any ratings exist). Optionally scoped to a city.
+export async function listFeaturedTurfs(city?: string, limit = 10) {
+  const match: Record<string, unknown> = { status: 'approved', isActive: true };
+  if (city) match.city = new RegExp(`^${escapeRegex(city)}$`, 'i');
+  return Turf.find(match)
+    .sort({ ratingAvg: -1, ratingCount: -1, createdAt: -1 })
+    .limit(limit)
+    .lean();
+}
+
 // ---------- Owner ----------
 
 interface TurfInput {
@@ -134,10 +170,10 @@ export async function createTurf(ownerId: string, data: TurfInput) {
     ownerId,
     name: data.name,
     description: data.description,
-    sports: data.sports,
+    sports: normalizeTags(data.sports),
     surface: data.surface,
     size: data.size,
-    amenities: data.amenities ?? [],
+    amenities: normalizeTags(data.amenities),
     address: data.address,
     city: data.city,
     location: { type: 'Point', coordinates: [data.lng, data.lat] },
@@ -168,15 +204,13 @@ const REAPPROVAL_FIELDS: (keyof TurfInput)[] = [
   'name', 'description', 'sports', 'surface', 'size', 'amenities', 'address', 'city', 'lat', 'lng', 'photos',
 ];
 
-export async function updateOwnerTurf(turfId: string, ownerId: string, data: Partial<TurfInput>) {
-  const turf = await getOwnedTurf(turfId, ownerId);
-
+function applyTurfPatch(turf: any, data: Partial<TurfInput>) {
   if (data.name !== undefined) turf.name = data.name;
   if (data.description !== undefined) turf.description = data.description;
-  if (data.sports !== undefined) turf.sports = data.sports;
+  if (data.sports !== undefined) turf.sports = normalizeTags(data.sports);
   if (data.surface !== undefined) turf.surface = data.surface;
   if (data.size !== undefined) turf.size = data.size;
-  if (data.amenities !== undefined) turf.amenities = data.amenities;
+  if (data.amenities !== undefined) turf.amenities = normalizeTags(data.amenities);
   if (data.address !== undefined) turf.address = data.address;
   if (data.city !== undefined) turf.city = data.city;
   if (data.lat !== undefined && data.lng !== undefined) {
@@ -191,6 +225,11 @@ export async function updateOwnerTurf(turfId: string, ownerId: string, data: Par
   if (data.slotDurationMinutes !== undefined) turf.slotDurationMinutes = data.slotDurationMinutes;
   if (data.weeklyClosedDays !== undefined) turf.weeklyClosedDays = data.weeklyClosedDays as any;
   if (data.isActive !== undefined) turf.isActive = data.isActive;
+}
+
+export async function updateOwnerTurf(turfId: string, ownerId: string, data: Partial<TurfInput>) {
+  const turf = await getOwnedTurf(turfId, ownerId);
+  applyTurfPatch(turf, data);
 
   // Material changes to an already-live listing send it back through
   // moderation; pricing / hours / pause toggles don't.
@@ -202,6 +241,17 @@ export async function updateOwnerTurf(turfId: string, ownerId: string, data: Par
 
   await turf.save();
   return turf;
+}
+
+// Admin edit — any turf, no owner scope, no re-approval bounce (the admin
+// IS the moderator). Status is only changed via the approve/reject actions.
+export async function adminUpdateTurf(turfId: string, data: Partial<TurfInput>) {
+  const turf = await Turf.findById(turfId);
+  if (!turf) throw { status: 404, message: 'Turf not found', error: 'TURF_NOT_FOUND' };
+  applyTurfPatch(turf, data);
+  await turf.save();
+  const [withOwner] = await withOwners([turf.toObject()]);
+  return withOwner;
 }
 
 export async function deleteOwnerTurf(turfId: string, ownerId: string) {
@@ -230,9 +280,31 @@ export async function deleteOwnerTurf(turfId: string, ownerId: string) {
 
 // ---------- Admin ----------
 
+// Attach the shared-auth owner's name/mobile to turf rows for the admin panel
+// (Turf's own DB can't populate across connections — look them up directly).
+async function withOwners<T extends { ownerId: string }>(turfs: T[]) {
+  const ownerIds = [...new Set(turfs.map((t) => t.ownerId))];
+  const users = await User.find({ _id: { $in: ownerIds } }).select('name mobile').lean();
+  const byId = new Map(users.map((u) => [u._id.toString(), u]));
+  return turfs.map((t) => ({
+    ...t,
+    owner: byId.get(t.ownerId)
+      ? { id: t.ownerId, name: byId.get(t.ownerId)!.name, mobile: byId.get(t.ownerId)!.mobile }
+      : { id: t.ownerId, name: undefined, mobile: undefined },
+  }));
+}
+
 export async function listTurfsByStatus(status?: string) {
   const filter = status ? { status } : {};
-  return Turf.find(filter).sort({ createdAt: status === 'pending' ? 1 : -1 }).lean();
+  const turfs = await Turf.find(filter).sort({ createdAt: status === 'pending' ? 1 : -1 }).lean();
+  return withOwners(turfs);
+}
+
+export async function getTurfByIdAdmin(id: string) {
+  const turf = await Turf.findById(id).lean();
+  if (!turf) throw { status: 404, message: 'Turf not found', error: 'TURF_NOT_FOUND' };
+  const [withOwner] = await withOwners([turf]);
+  return withOwner;
 }
 
 export async function setTurfStatus(turfId: string, status: 'approved' | 'rejected', reason?: string) {

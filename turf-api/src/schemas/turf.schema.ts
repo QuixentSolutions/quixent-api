@@ -34,7 +34,9 @@ export const createTurfSchema = z.object({
 
   openTime: timeSchema.optional(),
   closeTime: timeSchema.optional(),
-  slotDurationMinutes: z.number().int().min(30).max(180).optional(),
+  // No upper bound — owners can run half-day/full-day slots. Just needs to be
+  // a positive integer (it's the step size in slot generation).
+  slotDurationMinutes: z.number().int().min(1).optional(),
   weeklyClosedDays: z.array(weekday).max(7).optional(),
 
   isActive: z.boolean().optional(),
@@ -49,6 +51,14 @@ export const listTurfsQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
   radiusKm: z.coerce.number().min(0.5).max(100).optional(),
+  // Geo (nearby) filtering is opt-in — without this, lat/lng are ignored and
+  // the full catalogue is returned. Also implied by sort=distance.
+  // (z.coerce.boolean would turn the string "false" into true, so parse it
+  // explicitly.)
+  nearby: z
+    .enum(['true', 'false', '1', '0'])
+    .transform((v) => v === 'true' || v === '1')
+    .optional(),
   minPrice: z.coerce.number().min(0).optional(),
   maxPrice: z.coerce.number().min(0).optional(),
   sort: z.enum(['recommended', 'price_asc', 'price_desc', 'rating', 'distance']).optional(),

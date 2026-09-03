@@ -39,13 +39,16 @@ export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 3650) * 24 * 60 * 60 * 1000,
     });
     sendSuccess(res, result.isNewUser ? 'Registered successfully' : 'Login successful', {
       isNewUser: result.isNewUser,
       profileComplete: !!result.user.name,
       accessToken: result.accessToken,
       token: result.accessToken,
+      // Also returned in the body so native clients (no reliable cookie jar)
+      // can persist it on-device and send it back to /auth/refresh.
+      refreshToken: result.refreshToken,
       user: result.user,
     });
   } catch (err: any) {
@@ -55,7 +58,12 @@ export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
 
 export const refresh = async (req: Request, res: Response): Promise<void> => {
   try {
-    const refreshToken = req.cookies?.refreshToken;
+    // Accept the refresh token from any of: the httpOnly cookie (web), a
+    // bearer header, or the JSON body (native clients that stored it locally).
+    const headerToken = req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7)
+      : undefined;
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || headerToken;
     if (!refreshToken) {
       sendError(res, 'Refresh token missing', 'REFRESH_INVALID', 401);
       return;
@@ -69,8 +77,8 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
 
 export const logout = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const refreshToken = req.cookies?.refreshToken;
-    await logoutService(req.user!.userId, refreshToken ?? '');
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || '';
+    await logoutService(req.user!.userId, refreshToken);
     res.clearCookie('refreshToken');
     sendSuccess(res, 'Logged out successfully');
   } catch (err: any) {

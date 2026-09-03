@@ -49,9 +49,8 @@ export async function createBooking(userId: string, input: CreateBookingInput) {
   const slotCount = input.slotCount ?? 1;
   const resolved = await resolveBookingWindow(input.turfId, input.date, input.startTime, slotCount);
 
-  if (resolved.turf.ownerId === userId) {
-    throw { status: 400, message: 'You cannot book your own turf', error: 'OWNER_SELF_BOOKING' };
-  }
+  // Owners are regular customers too — they may book their own turf (e.g. to
+  // hold a slot for a walk-in / phone booking). No role separation.
 
   try {
     const booking = await Booking.create({
@@ -251,6 +250,41 @@ export async function deleteBlockedSlot(blockId: string, ownerId: string) {
 }
 
 // ---------- Owner dashboard ----------
+
+// ---------- Admin oversight ----------
+
+export async function adminListBookings(opts: {
+  turfId?: string;
+  ownerId?: string;
+  status?: string;
+  date?: string;
+  scope?: 'upcoming' | 'past' | 'all';
+  limit?: number;
+}) {
+  await sweepCompleted({});
+
+  const filter: Record<string, unknown> = {};
+  if (opts.turfId) filter.turfId = opts.turfId;
+  if (opts.ownerId) filter.ownerId = opts.ownerId;
+  if (opts.status) filter.status = opts.status;
+  if (opts.date) filter.date = opts.date;
+  else if (opts.scope === 'upcoming') filter.date = { $gte: todayStr() };
+  else if (opts.scope === 'past') filter.date = { $lt: todayStr() };
+
+  const bookings = await Booking.find(filter)
+    .sort({ date: -1, startTime: 1 })
+    .limit(Math.min(opts.limit ?? 100, 500))
+    .lean();
+
+  const userIds = [...new Set(bookings.map((b) => b.userId))];
+  const users = await User.find({ _id: { $in: userIds } }).select('name mobile').lean();
+  const byId = new Map(users.map((u) => [u._id.toString(), u]));
+
+  return bookings.map((b) => ({
+    ...b,
+    user: byId.get(b.userId) ? { name: byId.get(b.userId)!.name, mobile: byId.get(b.userId)!.mobile } : null,
+  }));
+}
 
 export async function ownerStats(ownerId: string) {
   await sweepCompleted({ ownerId });

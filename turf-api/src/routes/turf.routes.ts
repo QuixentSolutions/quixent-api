@@ -3,7 +3,14 @@ import { verifyToken } from '../../../auth/src/middleware/verifyToken';
 import { validate, asyncHandler } from '../utils/validate';
 import { listTurfsQuerySchema, availabilityQuerySchema } from '../schemas/turf.schema';
 import { createReviewSchema } from '../schemas/review.schema';
-import { listApprovedTurfs, getApprovedTurfById, listCities } from '../services/turf.service';
+import {
+  listApprovedTurfs,
+  getApprovedTurfById,
+  listCities,
+  listFeaturedTurfs,
+  listSports,
+  listAmenities,
+} from '../services/turf.service';
 import { getDayAvailability } from '../services/availability.service';
 import { listReviewsForTurf, upsertReview } from '../services/review.service';
 
@@ -25,6 +32,32 @@ router.get(
   asyncHandler(async (_req, res) => {
     const cities = await listCities();
     res.json({ success: true, cities });
+  }),
+);
+
+// No separate catalog collection — just the distinct sport/amenity strings
+// already in use across live turfs. Powers both Home's filter chips and the
+// owner form's autocomplete-while-typing.
+router.get(
+  '/sports',
+  asyncHandler(async (_req, res) => {
+    res.json({ success: true, sports: await listSports() });
+  }),
+);
+
+router.get(
+  '/amenities',
+  asyncHandler(async (_req, res) => {
+    res.json({ success: true, amenities: await listAmenities() });
+  }),
+);
+
+router.get(
+  '/featured',
+  asyncHandler(async (req, res) => {
+    const city = typeof req.query.city === 'string' ? req.query.city : undefined;
+    const turfs = await listFeaturedTurfs(city);
+    res.json({ success: true, turfs });
   }),
 );
 

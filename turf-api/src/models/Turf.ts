@@ -90,7 +90,10 @@ const TurfSchema = new Schema<ITurfDocument>(
 
     openTime: { type: String, required: true, default: '06:00' },
     closeTime: { type: String, required: true, default: '23:00' },
-    slotDurationMinutes: { type: Number, default: 60, min: 30, max: 180 },
+    // No upper bound — some turfs book by the half-day/full-day. Must stay
+    // positive: it's used as the step in a slot-generation loop, so 0 would
+    // hang it forever.
+    slotDurationMinutes: { type: Number, default: 60, min: 1 },
     weeklyClosedDays: { type: [Number], default: [] },
 
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },

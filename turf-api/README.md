@@ -28,8 +28,9 @@ and its own Azure Blob container (`turf`).
 ### Public — `/turf/turfs`
 | Method | Path | Description |
 |---|---|---|
-| GET | `/turfs` | Browse approved+active turfs. Query: `city, sport, q, lat, lng, radiusKm, minPrice, maxPrice, sort, page, limit`. |
+| GET | `/turfs` | Browse approved+active turfs — **returns the whole catalogue by default**. Query: `city, sport, q, minPrice, maxPrice, sort, page, limit`, plus `nearby=true` + `lat,lng[,radiusKm]` to opt into geo (also implied by `sort=distance`). Without `nearby`, `lat/lng` are ignored. |
 | GET | `/turfs/cities` | Distinct cities with live turfs. |
+| GET | `/turfs/featured?city=` | Top-rated live turfs for the Home rail (optionally city-scoped). |
 | GET | `/turfs/:id` | Approved turf detail. |
 | GET | `/turfs/:id/availability?date=YYYY-MM-DD` | Slot grid for a day with `available` + `reason` + per-slot `price`. |
 | GET | `/turfs/:id/reviews` | Reviews (with reviewer name). |
@@ -38,7 +39,7 @@ and its own Azure Blob container (`turf`).
 ### Bookings — `/turf/bookings` (auth)
 | Method | Path | Description |
 |---|---|---|
-| POST | `/bookings` | `{ turfId, date, startTime, slotCount?, sport?, playerCount?, notes? }` → confirmed booking. |
+| POST | `/bookings` | `{ turfId, date, startTime, slotCount?, sport?, playerCount?, notes? }` → confirmed booking. Owners **may** book their own turf (walk-in / phone reservations) — roles aren't separated. |
 | GET | `/bookings/mine?scope=upcoming\|past\|all&status=` | Player's bookings, each decorated with its `turf`. |
 | GET | `/bookings/:id` | One of the player's bookings. |
 | PATCH | `/bookings/:id/cancel` | `{ reason? }`. Blocked within `TURFSPOT_CANCEL_CUTOFF_HOURS` of the slot. |
@@ -58,9 +59,17 @@ and its own Azure Blob container (`turf`).
 | Method | Path | Description |
 |---|---|---|
 | GET | `/admin/stats` | Platform totals. |
-| GET | `/admin/turfs?status=` / `/admin/turfs/pending` | Moderation queues. |
+| GET | `/admin/turfs?status=` / `/admin/turfs/pending` | Moderation queues (each row carries `owner` = shared-auth name/mobile). |
+| GET | `/admin/turfs/:id` | One turf of any status, with `owner`. |
+| PATCH | `/admin/turfs/:id` | Edit any turf field (same body as owner update). Saves immediately; does **not** change approval status. |
+| GET | `/admin/turfs/:id/reviews` | Reviews for a turf. |
+| GET | `/admin/turfs/:id/bookings` | Bookings for a turf, decorated with player name/mobile. |
+| GET | `/admin/bookings?turfId=&ownerId=&status=&date=&scope=&limit=` | Every booking, platform-wide. |
 | PATCH | `/admin/turfs/:id/approve` | Publish a listing. |
 | PATCH | `/admin/turfs/:id/reject` | `{ reason }`. |
+
+The **TurfSpot Admin** web console (`D:\new turf\turf-admin`, Vite + React)
+is the client for these routes.
 
 ### Uploads — `/turf/uploads` (auth)
 `POST /uploads/image` (multipart, `folder` = `turf-photos` \| `review-photos`)
