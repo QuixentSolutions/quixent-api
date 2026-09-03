@@ -13,10 +13,16 @@ import {
 } from '../services/stall.service';
 import { listReviewsForStall, upsertReview } from '../services/review.service';
 import { addFavorite, removeFavorite, listFavoriteStallIds, listFavoriteStalls } from '../services/favorite.service';
+import { CATEGORIES } from '../config/categories';
 
 const router = Router();
 
 // --- Public / customer ---
+
+// Registered before /:id so "categories" isn't captured as a stall id.
+router.get('/categories', (_req, res) => {
+  res.json({ success: true, categories: CATEGORIES });
+});
 
 router.get(
   '/nearby',
