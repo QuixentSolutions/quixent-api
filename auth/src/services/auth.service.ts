@@ -15,6 +15,10 @@ const OTP_COOLDOWN_MS      = 60 * 1000;
 const MAX_DAILY_REQUESTS   = 10;
 const MAX_ATTEMPTS         = 5;
 const RATE_LIMIT_EXPIRY_MS = 24 * 60 * 60 * 1000;
+// The stored refresh-token row carries a TTL index, so it must outlive the
+// refresh JWT itself or Mongo reaps it early and ends the session. Default
+// ~10 years ("until logout / account delete"); override with REFRESH_TOKEN_TTL_DAYS.
+const REFRESH_TOKEN_TTL_MS = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 3650) * 24 * 60 * 60 * 1000;
 
 // Play Store review accounts — set REVIEW_PHONES and REVIEW_OTP in .env on the server
 const REVIEW_PHONES = process.env.REVIEW_PHONES?.split(',').map(p => p.trim()) ?? [];
@@ -119,7 +123,7 @@ export const verifyOtpService = async (mobile: string, code: string) => {
   await Token.create({
     userId: user._id,
     token: refreshToken,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
   });
 
   return {
@@ -130,6 +134,7 @@ export const verifyOtpService = async (mobile: string, code: string) => {
       _id: user._id,
       mobile: user.mobile,
       name: user.name,
+      email: user.email,
       gender: user.gender,
       age: user.age,
       role: user.role,
@@ -183,13 +188,16 @@ export const getUserByIdService = async (userId: string) => {
 
 export const updateProfileService = async (
   userId: string,
-  data: { name?: string; gender?: string; age?: number; city?: string; bio?: string; profileImage?: string },
+  data: { name?: string; email?: string; gender?: string; age?: number; city?: string; bio?: string; profileImage?: string },
 ) => {
   if (data.gender && !['male', 'female'].includes(data.gender)) {
     throw { status: 400, message: 'gender must be male or female.', error: 'INVALID_INPUT' };
   }
   if (data.age !== undefined && (data.age < 18 || data.age > 80)) {
     throw { status: 400, message: 'age must be between 18 and 80.', error: 'INVALID_INPUT' };
+  }
+  if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    throw { status: 400, message: 'Enter a valid email address.', error: 'INVALID_INPUT' };
   }
 
   const user = await User.findByIdAndUpdate(userId, data, { new: true }).select('-__v');
@@ -243,5 +251,16 @@ export const deleteAccountService = async (userId: string) => {
     });
   } catch {
     // non-critical — orphaned stall/review data does not contain PII beyond what's already public
+  }
+
+  // Fire-and-forget: clean up Turf listings/bookings/reviews owned by this user
+  try {
+    await axios.delete(`${process.env.AUTH_API_URL?.replace('/auth', '')}/turf/user-data`, {
+      headers: { 'x-internal-secret': process.env.INTERNAL_SECRET ?? '' },
+      data: { userId },
+      timeout: 5000,
+    });
+  } catch {
+    // non-critical — orphaned turf data does not contain PII beyond what's already public
   }
 };
