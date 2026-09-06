@@ -13,14 +13,13 @@
     "axios": "^1.6.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dayjs": "^1.11.23",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.4.1",
-    "multer": "^2.3.0",
-    "zod": "^4.5.4"
+    "multer": "^2.2.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
