@@ -28,3 +28,7 @@ export const nearbyQuerySchema = z.object({
   radiusKm: z.coerce.number().min(0.1).max(50).optional(),
   category: z.string().trim().optional(),
 });
+
+export const allStallsQuerySchema = z.object({
+  category: z.string().trim().optional(),
+});

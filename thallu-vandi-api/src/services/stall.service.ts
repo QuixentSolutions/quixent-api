@@ -30,6 +30,16 @@ export async function findNearbyStalls(params: {
   return Stall.find(filter).limit(200);
 }
 
+// No location required — lets the app show something even without location
+// permission (also what a Play Store reviewer sees if they deny it).
+export async function listAllStalls(params: { category?: string } = {}) {
+  const filter: Record<string, unknown> = { status: 'approved' };
+  if (params.category) {
+    filter.categories = params.category;
+  }
+  return Stall.find(filter).sort({ createdAt: -1 }).limit(200);
+}
+
 export async function getApprovedStallById(id: string) {
   const stall = await Stall.findOne({ _id: id, status: 'approved' });
   if (!stall) throw { status: 404, message: 'Stall not found', error: 'STALL_NOT_FOUND' };

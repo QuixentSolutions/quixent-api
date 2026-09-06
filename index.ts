@@ -61,6 +61,8 @@ app.get('/test', (req, res) => {
 
   app.get('/delete-account/turfspot', (req, res) => {
     res.sendFile(path.join(process.cwd(), 'public', 'delete-account-turfspot.html'));
+  app.get('/streeteats-logo.png', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'streeteats-logo.png'));
   });
 
   app.get('/join/:code', (req, res) => {
